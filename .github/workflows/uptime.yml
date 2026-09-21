@@ -1,0 +1,32 @@
+name: Fortunata uptime
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: GET /hr
+        run: |
+          set -uo pipefail
+          url="https://hotel-fortunata-booking.vercel.app/hr"
+          code="$(curl -sS -o /dev/null -w '%{http_code}' \
+                    --max-time 30 --retry 3 --retry-delay 10 \
+                    --retry-all-errors "$url" || echo 000)"
+          echo "HTTP $code for $url"
+          case "$code" in
+            200|307|308)
+              echo "Fortunata demo reachable (HTTP $code)."
+              ;;
+            *)
+              echo "::error title=Fortunata demo down::GET $url returned HTTP $code (expected 200/307/308)"
+              exit 1
+              ;;
+          esac
